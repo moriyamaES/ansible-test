@@ -219,3 +219,188 @@
     /usr/bin/ansible    
     ```
 
+## /etc/ansible/hosts の修正
+
+- 以下のように修正
+    
+    ```
+    # diff -u /etc/ansible/hosts_org /etc/ansible/hosts 
+    --- /etc/ansible/hosts_org      2023-08-25 20:14:31.870694743 +0900
+    +++ /etc/ansible/hosts  2023-08-25 20:17:52.228270065 +0900
+    @@ -42,3 +42,5 @@
+    
+    ## db-[99:101]-node.example.com
+    
+    +[servers]
+    +10.1.1.1    
+    ```
+
+- 以下のコマンドを実行
+
+    ```
+    # ansible servers -m shell -a "hostname"
+    ```
+
+    - エラー発生
+
+        ```
+        # ansible servers -m shell -a "hostname"
+        10.1.1.1 | UNREACHABLE! => {
+            "changed": false, 
+            "msg": "Failed to connect to the host via ssh: Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).", 
+            "unreachable": true
+        }    
+        ```
+
+- 【エラーの原因】(ChatGPTの回答)SSHキーの問題: Ansibleは通常、SSHキーを使用してリモートホストに接続します。指定されたホストにSSHキーを持っていないか、または正しいキーが使用されていない可能性があります。Ansibleが使用するSSHキーが正しいことを確認してください。
+
+- 指定されたホストに 10.1.1.1 にてSSH キーを指定
+- Ansibleの接続先 10.1.1.1 にて以下を実施
+
+    -インストール済
+    ```
+    # rpm -qa | grep openssh
+    openssh-server-7.4p1-21.el7.x86_64
+    openssh-clients-7.4p1-21.el7.x86_64
+    openssh-7.4p1-21.el7.x86_64
+    ```
+
+    - 　10.1.1.1 にて、sshの鍵を作成
+    - 以下のサイトを参照
+
+        https://atmarkit.itmedia.co.jp/flinux/rensai/linuxtips/432makesshkey.html
+    
+    - パスフレーズはなし
+    ```
+    # ssh-keygen -t rsa
+    ```
+
+    - 結果
+
+        ```
+        # ssh-keygen -t rsa
+        Generating public/private rsa key pair.
+        Enter file in which to save the key (/root/.ssh/id_rsa):
+        Created directory '/root/.ssh'.
+        Enter passphrase (empty for no passphrase):
+        Enter same passphrase again:
+        Your identification has been saved in /root/.ssh/id_rsa.
+        Your public key has been saved in /root/.ssh/id_rsa.pub.
+        The key fingerprint is:
+        SHA256:FwtbIk5Ks8aIsPPVAJYDBqjJsVd072VOVanQ1SZKVEU root@localhost.localdomain
+        The key's randomart image is:
+        +---[RSA 2048]----+
+        |=oo... .   .oo+=E|
+        |ooo. .. .  .o...o|
+        |+.o.= o o.o=...o |
+        |+= = O ..==o..   |
+        |+ o * o S.o.     |
+        | o o     .       |
+        |  .              |
+        |                 |
+        |                 |
+        +----[SHA256]-----+
+        ```
+
+- Ansibleの接続先　10.1.1.1 に作成されたキー
+
+    ```
+    # ll ./.ssh/
+    合計 8
+    -rw-------. 1 root root 1679  8月 25 20:58 id_rsa
+    -rw-r--r--. 1 root root  408  8月 25 20:58 id_rsa.pub
+    ```
+
+- Ansible を実行するサーバ 10.1.1.200 にて、接続先情報の設定
+
+    - ~/.ssh/config の作成（以下のサイトを参照）
+
+        https://tech-blog.rakus.co.jp/entry/20210512/ssh
+
+
+    - Ansible を実行するサーバ 10.1.1.200 にて、~/.ssh/config を作成
+
+        ```
+        # touch ~/.ssh/config
+        ```
+
+        - Ansibleの接続先　10.1.1.1 の情報を記載
+        ```
+        # cat << EOT >>  ~/.ssh/config
+        Host router
+            Hostname 10.1.1.1
+            User root
+            IdentityFile ~/.ssh/id_rsa
+        EOT
+        ```
+
+        ```
+        # cat ~/.ssh/config
+        ```
+
+
+    - Ansibleの接続先 10.1.1.1に公開鍵をコピー
+
+
+    ```
+    # ssh-copy-id router
+    ```
+
+    - 結果
+        ```
+        /usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/root/.ssh/id_rsa.pub"
+        /usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+        /usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+        root@10.1.1.1's password: 
+
+        Number of key(s) added: 1
+
+        Now try logging into the machine, with:   "ssh 'router'"
+        and check to make sure that only the key(s) you wanted were added. 
+        ```
+
+
+    - Ansibleの接続先 10.1.1.1 に接続できることを確認
+
+        ```
+        # ssh router
+        ```
+
+
+
+
+## Ansibleの疎通確認
+
+- 以下のサイトを参照
+    
+    https://ozashu.hatenablog.com/entry/2016/09/04/072308
+
+
+    ```
+    # ansible servers -m ping
+    10.1.1.1 | SUCCESS => {
+        "ansible_facts": {
+            "discovered_interpreter_python": "/usr/bin/python"
+        }, 
+        "changed": false, 
+        "ping": "pong"
+    }
+    ```
+
+## Ansible でホスト名の確認
+
+- 以下のコマンドを実行
+
+    ```
+    # ansible servers -m shell -a "hostname"
+    ```
+
+    ```
+    10.1.1.1 | CHANGED | rc=0 >>
+    localhost.localdomain
+    ```
+
+
+    ```
+    # ansible servers -m shell -a "id"
+    ```
