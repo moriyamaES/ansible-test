@@ -404,3 +404,96 @@
     ```
     # ansible servers -m shell -a "id"
     ```
+
+## Ansibleでユーザの追加
+
+- 以下のPlayBookを作成
+
+    <del>
+        ```
+        # cat crete-user.yml
+        - hosts: linuxservers
+          gather_facts: false
+
+        tasks:
+            - name: Create user
+            user:
+                name: testuser
+                password: testuser123
+            become: true
+        ```
+    </del>
+
+
+    ```
+    # cat ~/ansible-test/test01/crete-user.yml 
+    - hosts: servers
+    gather_facts: false
+
+    tasks:
+        - name: Create user
+        user:
+            name: testuser
+            password: testuser123
+
+        become: true
+    ```
+
+
+- 以下のコマンドを実行
+- パスワードをハッシュ化する必要が有る模様
+
+    ```
+    # ansible-playbook crete-user.yml 
+
+    PLAY [servers] ******************************************************************************
+
+    TASK [Create user] **************************************************************************
+    [WARNING]: The input password appears not to have been hashed. The 'password' argument must
+    be encrypted for this module to work properly.
+    changed: [10.1.1.1]
+
+    PLAY RECAP **********************************************************************************
+    10.1.1.1                   : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0       
+    ```
+
+- Ansibleの接続先　10.1.1.1 (routesr) で testuser が作成されていることを確認
+
+- ssh で10.1.1.1 (routesr) にログイン
+    ```
+    # ssh router
+    ```
+
+- testuser が存在していることを確認
+
+    ```
+    # grep -e "test"  /etc/passwd
+    testuser:x:1001:1001::/home/testuser:/bin/bash
+
+    # exit
+    ログアウト
+    ```
+
+
+
+## Ansibleでユーザの削除
+
+- 以下のサイトを参考にした
+    
+     https://qiita.com/KeijiYONEDA/items/011b78b12022202d4ea1
+
+
+    ```
+    # cat delete-user.yml
+    - hosts: servers
+    gather_facts: false
+
+    tasks:
+        - name: Delete user
+        user:
+            name: testuser
+            state: absent
+            remove: yes
+        become: true
+    ```
+
