@@ -1,0 +1,10 @@
+- hosts: servers
+  gather_facts: false
+
+  tasks:
+    - name: Delete user
+      user:
+        name: testuser
+        state: absent
+        remove: yes
+      become: true

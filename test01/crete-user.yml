@@ -1,0 +1,9 @@
+- hosts: servers
+  gather_facts: false
+
+  tasks:
+    - name: Create user
+      user:
+        name: testuser
+        password: testuser123
+      become: true
