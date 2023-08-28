@@ -378,14 +378,18 @@
 
     ```
     # ansible servers -m ping
-    10.1.1.1 | SUCCESS => {
-        "ansible_facts": {
-            "discovered_interpreter_python": "/usr/bin/python"
-        }, 
-        "changed": false, 
-        "ping": "pong"
-    }
-    ```
+
+    - 結果
+
+        ```
+        10.1.1.1 | SUCCESS => {
+            "ansible_facts": {
+                "discovered_interpreter_python": "/usr/bin/python"
+            }, 
+            "changed": false, 
+            "ping": "pong"
+        }
+        ```
 
 ## Ansible でホスト名の確認
 
@@ -496,4 +500,45 @@
             remove: yes
         become: true
     ```
+
+- 以下のコマンドを実行
+
+    ```
+    # ansible-playbook delete-user.yml 
+
+    ```
+    
+    - 結果
+
+    ```
+    PLAY [servers] **************************************************************************************************************************************************************
+
+    TASK [Delete user] **********************************************************************************************************************************************************
+    changed: [10.1.1.1]
+
+    PLAY RECAP ******************************************************************************************************************************************************************
+    10.1.1.1                   : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+    ```
+
+
+- Ansibleの接続先　10.1.1.1 (routesr) で testuser が削除されていることを確認
+
+- ssh で10.1.1.1 (routesr) にログイン
+    ```
+    # ssh router
+    ```
+
+- testuser が存在ないことを確認
+
+    ```
+    # # grep -e "test"  /etc/passwd | wc -l
+    0
+    ```
+
+    ```
+    # exit
+    ログアウト
+    ```
+
 
